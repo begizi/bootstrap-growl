@@ -173,6 +173,8 @@
 			case 'right':
 				$template.find('[data-growl="container"]').css('right', settings.offset.x + 'px');
 				break;
+			case 'none':
+				break;
 		}
 		$template.find('[data-growl="container"]').addClass('growl-animated');
 
