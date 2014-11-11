@@ -1,5 +1,5 @@
 /*
-*  Project: Bootstrap Growl - v2.0.0
+*  Project: Bootstrap Growl - v2.0.2
 *  Description: Turns standard Bootstrap alerts into "Growl-like" notifications.
 *  Author: Mouse0270 aka Robert McIntosh
 *  License: MIT License
@@ -19,6 +19,7 @@
 			},
 			offset: 20,
 			spacing: 10,
+			position: null,
 			z_index: 1031,
 			delay: 5000,
 			timer: 1000,
@@ -33,8 +34,8 @@
 			onHide: null,
 			onHidden: null,
 			icon_type: 'class',
-			template: '<div data-growl="container" class="alert" role="alert"><button type="button" class="close" data-growl="dismiss"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button><span data-growl="icon"></span><span data-growl="title"></span><span data-growl="message"></span><a href="#" data-growl="url"></a></div>'
-		};	
+			template: '<div data-growl="container" class="alert" role="alert"><button type="button" aria-hidden="true" class="close" data-growl="dismiss">&times;</button><span data-growl="icon"></span><span data-growl="title"></span><span data-growl="message"></span><a href="#" data-growl="url"></a></div>'
+		};
 
 	// The actual plugin constructor
 	var setDefaults = function(element, options) {
@@ -44,7 +45,7 @@
 		if (!options) {
 			$('[data-growl="container"]').find('[data-growl="dismiss"]').trigger('click');
 		}else{
-			$('[data-growl="container"][data-growl-position="'+options+'"]').find('[data-growl="dismiss"]').trigger('click');			
+			$('[data-growl="container"][data-growl-position="'+options+'"]').find('[data-growl="dismiss"]').trigger('click');
 		}
 	},
 	Plugin = function (element, content, options) {
@@ -60,14 +61,14 @@
 		options = $.extend(true, {}, content, options);
 		this.settings = $.extend(true, {}, defaults, options);
 		plugin = this;
-		init(options, this.settings, plugin);	
+		init(options, this.settings, plugin);
 		this.$template = $template;
 	},
 	init = function (options, settings, plugin) {
 
 		var base = {
 				settings: settings,
-				$element: $(settings.element),
+				element: settings.element,
 				template: settings.template
 			};
 
@@ -87,12 +88,14 @@
 
 		var $template = $(base.settings.template);
 
-		$template.addClass('alert-' + base.settings.type);
-		$template.attr('data-growl-position', base.settings.placement.from + '-' + base.settings.placement.align);
+		$template.find('[data-growl="container"]').addClass('alert-' + base.settings.type);
+		$template.find('[data-growl="container"]').attr('data-growl-position', base.settings.placement.from + '-' + base.settings.placement.align);
 
 		$template.find('[data-growl="dismiss"]').css('display', 'none');
+		$template.removeClass('alert-dismissable');
 		if (base.settings.allow_dismiss) {
-			$template.find('[data-growl="dismiss"]').css('display', 'inline-block');
+  		$template.find('[data-growl="container"]').addClass('alert-dismissable');
+			$template.find('[data-growl="dismiss"]').css('display', 'block');
 		}
 
 		return $template;
@@ -100,9 +103,6 @@
 	addContent = function($template, settings) {
 
 		$template.find('[data-growl="dismiss"]').css({
-			'position': 'absolute',
-			'top': '5px',
-			'right': '10px',
 			'z-index': ((settings.z_index-1) >= 1 ? (settings.z_index-1) : 1)
 		});
 
@@ -130,8 +130,8 @@
 			$template.find('[data-growl="url"]').attr('href', settings.content.url).attr('target', settings.url_target);
 			$template.find('[data-growl="url"]').css({
 				'position': 'absolute',
-				'top': '0px',
-				'left': '0px',
+				'top': 0,
+				'left': 0,
 				'width': '100%',
 				'height': '100%',
 				'z-index': ((settings.z_index-2) >= 1 ? (settings.z_index-2) : 1)
@@ -141,7 +141,7 @@
 	placement = function($template, settings) {
 		var offsetAmt = settings.offset.y,
 			gCSS = {
-				'position': (settings.element === 'body' ? 'fixed' : 'absolute'),
+				'position': settings.position ? settings.position : (settings.element === 'body' ? 'fixed' : 'absolute'),
 				'margin': 0,
 				'z-index': settings.z_index,
 				'display': 'inline-block'
@@ -153,7 +153,7 @@
 		});
 
 		gCSS[settings.placement.from] = offsetAmt + "px";
-		$template.css(gCSS);
+		$template.find('[data-growl="container"]').css(gCSS);
 
 		if (settings.onShow) {
 			settings.onShow(event);
@@ -163,24 +163,26 @@
 
 		switch (settings.placement.align) {
 			case 'center':
-				$template.css({
+				$template.find('[data-growl="container"]').css({
 					'left': '50%',
 					'marginLeft': -($template.outerWidth() / 2) + 'px'
 				});
 				break;
 			case 'left':
-				$template.css('left', settings.offset.x + 'px');
+				$template.find('[data-growl="container"]').css('left', settings.offset.x + 'px');
 				break;
 			case 'right':
-				$template.css('right', settings.offset.x + 'px');
+				$template.find('[data-growl="container"]').css('right', settings.offset.x + 'px');
+				break;
+			case 'none':
 				break;
 		}
-		$template.addClass('growl-animated');
+		$template.find('[data-growl="container"]').addClass('growl-animated');
 
 		$template.one('webkitAnimationStart oanimationstart MSAnimationStart animationstart', function(event) {
 			hasAnimation = true;
 		});
-			
+
 		$template.one('webkitAnimationEnd oanimationend MSAnimationEnd animationend', function(event) {
 			if (settings.onShown) {
 				settings.onShown(event);
@@ -196,14 +198,14 @@
 		}, 600);
 	},
 	bindControls = function($template, settings, plugin) {
-		$template.addClass(settings.animate.enter);
+		$template.find('[data-growl="container"]').addClass(settings.animate.enter);
 
 		$template.find('[data-growl="dismiss"]').on('click', function() {
 			plugin.close();
 		});
 
 		$template.on('mouseover', function(e) {
-			$template.addClass('hovering');
+			$template.find('[data-growl="container"]').addClass('hovering');
 		}).on('mouseout', function() {
 			$template.removeClass('hovering');
 		});
@@ -246,7 +248,7 @@
 					break;
 				case 'type':
 					this.$template.removeClass('alert-' + this.settings.type);
-					this.$template.addClass('alert-' + update);
+					this.$template.find('[data-growl="container"]').addClass('alert-' + update);
 					break;
 				default:
 					this.$template.find('[data-growl="' + command +'"]').html(update);
@@ -257,14 +259,14 @@
 		close: function() {
 			var base = this.$template,
 				settings = this.settings,
-				posX = base.css(settings.placement.from),
+				posX = base.find('[data-growl="container"]').css(settings.placement.from),
 				hasAnimation = false;
 
 			if (settings.onHide) {
 				settings.onHide(event);
 			}
 
-			base.addClass(this.settings.animate.exit);
+			base.find('[data-growl="container"]').addClass(this.settings.animate.exit);
 
 			base.nextAll('[data-growl-position="' + this.settings.placement.from + '-' + this.settings.placement.align + '"]').each(function() {
 				$(this).css(settings.placement.from, posX);
@@ -274,7 +276,7 @@
 			base.one('webkitAnimationStart oanimationstart MSAnimationStart animationstart', function(event) {
 				hasAnimation = true;
 			});
-			
+
 			base.one('webkitAnimationEnd oanimationend MSAnimationEnd animationend', function(event) {
 				$(this).remove();
 				if (settings.onHidden) {
